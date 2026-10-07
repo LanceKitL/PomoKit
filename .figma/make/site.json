@@ -1,0 +1,10 @@
+{
+  "description": "Organize tasks, track priorities, and boost focus with a customizable Pomodoro timer featuring light and dark modes and personal AI assistant integration.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
