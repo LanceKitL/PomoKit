@@ -8,6 +8,7 @@ import type {
 import { assistantConnectionSchema } from "@/features/assistant/assistant.validation"
 
 export const dynamic = "force-dynamic"
+export const maxDuration = 30
 
 const PROVIDER_CONFIG: Record<AssistantProvider, {
   endpoint: string
