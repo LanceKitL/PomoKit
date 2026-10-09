@@ -144,3 +144,8 @@
 *.stl                filter=lfs diff=lfs merge=lfs -text
 *.nc                 filter=lfs diff=lfs merge=lfs -text
 *.mat                filter=lfs diff=lfs merge=lfs -text
+
+# These assets are consumed by Next.js and must be available as image bytes
+# during builds, without relying on Git LFS smudge support.
+public/logo.png      -filter -diff -merge -text
+src/app/icon.png     -filter -diff -merge -text
