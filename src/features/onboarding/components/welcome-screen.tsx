@@ -1,6 +1,6 @@
 "use client"
 
-import { ArrowRight, CheckCircle2, ListTodo, TimerReset } from "lucide-react"
+import { ArrowRight, Check, Circle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import Brand from "@/components/layout/brand"
@@ -26,97 +26,143 @@ export default function WelcomeScreen() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-canvas px-5 py-6 sm:px-8">
+    <main className="relative isolate min-h-screen overflow-hidden bg-canvas px-5 py-5 sm:px-8 sm:py-7">
       <div
         aria-hidden="true"
-        className="absolute inset-0 decorative-grid opacity-35"
+        className="pointer-events-none absolute -end-48 -top-56 -z-10 size-[38rem] rounded-full border border-primary/25"
       />
       <div
         aria-hidden="true"
-        className="absolute -start-24 top-28 size-80 rounded-full border border-primary/55"
+        className="pointer-events-none absolute -end-32 -top-40 -z-10 size-[30rem] rounded-full bg-peach/45 blur-3xl"
       />
-      <div
-        aria-hidden="true"
-        className="absolute -end-24 -top-16 size-96 rounded-[35%] bg-peach/80"
-      />
-      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col">
-        <header>
+      <div className="mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-7xl flex-col">
+        <header className="flex items-center justify-between gap-4">
           <Brand />
+          <p className="inline-flex min-h-10 items-center gap-2 rounded-full bg-lavender px-3.5 text-sm font-extrabold text-on-accent">
+            <Check aria-hidden="true" size={16} strokeWidth={2.75} />
+            No account needed
+          </p>
         </header>
-        <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1.15fr_0.85fr]">
+
+        <div className="grid flex-1 items-center gap-12 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16 lg:py-16">
           <section className="max-w-2xl">
-            <p className="mb-5 inline-flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-sm font-bold text-muted">
-              <span className="size-2 rounded-full bg-primary" />A calmer way to
-              get things done
+            <p className="mb-5 text-sm font-extrabold tracking-[0.18em] text-primary-strong uppercase">
+              A little more focus
             </p>
-            <h1 className="text-balance font-display text-5xl leading-[1.02] font-semibold tracking-tight text-ink sm:text-7xl">
-              Let&apos;s get it done.
+            <h1 className="text-balance font-display text-5xl leading-[1.03] font-semibold tracking-tight text-ink sm:text-7xl">
+              Make room for the work that matters.
             </h1>
             <p className="mt-6 max-w-xl text-pretty text-lg leading-8 text-muted sm:text-xl">
-              Organize what matters, choose one task, and give it your full
-              attention.
+              Keep your next task, a steady timer, and your notes in one
+              uncluttered place.
             </p>
-            <Button
-              className="mt-9"
-              size="lg"
-              onClick={() => router.push("/onboarding/theme")}
-            >
-              Start focusing
-              <ArrowRight aria-hidden="true" size={19} />
-            </Button>
+            <div className="mt-8">
+              <Button
+                size="lg"
+                onClick={() => router.push("/onboarding/theme")}
+              >
+                Set up your space
+                <ArrowRight aria-hidden="true" size={19} />
+              </Button>
+            </div>
           </section>
-          <aside className="relative mx-auto w-full max-w-md rounded-[2.25rem] bg-surface p-5 paper-shadow sm:p-7">
-            <div className="rounded-3xl bg-lavender p-6 text-on-accent">
-              <p className="text-sm font-bold text-on-accent/75">
-                Today’s focus
-              </p>
-              <p className="timer-digits mt-2 text-6xl font-extrabold">25:00</p>
-              <div className="mt-6 h-2 overflow-hidden rounded-full bg-surface/60">
-                <div className="h-full w-2/3 rounded-full bg-primary" />
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Feature icon={<ListTodo size={19} />} label="Clear priorities" />
-              <Feature
-                icon={<TimerReset size={19} />}
-                label="Focused sessions"
-              />
-            </div>
-            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-peach p-4 text-on-accent">
-              <CheckCircle2
-                aria-hidden="true"
-                className="text-on-accent"
-                size={22}
-              />
-              <div>
-                <p className="font-bold">One task at a time</p>
-                <p className="text-sm text-on-accent/75">
-                  Less noise. More momentum.
-                </p>
-              </div>
-            </div>
-          </aside>
+
+          <Preview />
         </div>
+
+        <section
+          aria-label="How PomoKit works"
+          className="grid gap-5 border-t border-line py-6 sm:grid-cols-3 sm:gap-8 sm:py-7"
+        >
+          <Step number="01" title="Choose a task" />
+          <Step number="02" title="Focus" />
+          <Step number="03" title="Take a break" />
+        </section>
       </div>
     </main>
   )
 }
 
-interface FeatureProps {
-  icon: React.ReactNode
-  label: string
+function Preview() {
+  return (
+    <section
+      aria-label="Sample focus session"
+      className="relative mx-auto w-full max-w-lg"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute -inset-4 -rotate-2 rounded-[2rem] border border-primary/25"
+      />
+      <div className="relative rounded-[1.75rem] border border-line bg-surface p-5 paper-shadow sm:p-7">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-extrabold tracking-[0.16em] text-muted uppercase">
+              Sample session
+            </p>
+            <h2 className="mt-1 text-lg font-extrabold">Focus session</h2>
+          </div>
+          <span className="inline-flex min-h-9 items-center gap-2 rounded-full bg-surface-raised px-3 text-xs font-bold text-muted">
+            <span className="size-2 rounded-full bg-primary" />
+            Ready when you are
+          </span>
+        </div>
+
+        <div className="mt-5 rounded-2xl bg-lavender p-5 text-on-accent sm:p-6">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-on-accent/75">
+                One session
+              </p>
+              <p className="timer-digits mt-1 text-6xl leading-none font-extrabold tracking-tight sm:text-7xl">
+                25:00
+              </p>
+            </div>
+            <div
+              aria-hidden="true"
+              className="mb-1 grid size-12 place-items-center rounded-full border-2 border-on-accent/25"
+            >
+              <span className="size-2 rounded-full bg-primary" />
+            </div>
+          </div>
+          <div className="mt-5 h-1.5 rounded-full bg-on-accent/15" />
+        </div>
+
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-surface-raised p-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-canvas text-muted">
+            <Circle aria-hidden="true" size={19} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold tracking-wide text-muted uppercase">
+              Next task
+            </p>
+            <p className="mt-0.5 truncate font-bold">One thing at a time</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 px-1 text-sm">
+          <span className="font-bold text-ink">Your notes, close at hand</span>
+          <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
+        </div>
+      </div>
+    </section>
+  )
 }
 
-function Feature({ icon, label }: FeatureProps) {
+function Step({
+  number,
+  title,
+}: {
+  number: string
+  title: string
+}) {
   return (
-    <div className="flex min-h-20 items-center gap-3 rounded-2xl bg-surface-raised p-4 font-bold">
-      <span
-        className="grid size-9 place-items-center rounded-xl bg-canvas text-ink"
-        aria-hidden
-      >
-        {icon}
+    <div className="flex gap-3">
+      <span className="pt-0.5 text-xs font-extrabold tracking-wide text-primary-strong">
+        {number}
       </span>
-      {label}
+      <div>
+        <h2 className="font-extrabold">{title}</h2>
+      </div>
     </div>
   )
 }

@@ -39,6 +39,40 @@ export function autoListCommandFor(textBeforeCaret: string) {
   return null
 }
 
+export function normalizeNoteLists(editor: HTMLElement) {
+  const lists = editor.querySelectorAll(
+    "p > ul, p > ol, h1 > ul, h1 > ol, h2 > ul, h2 > ol, div > ul, div > ol",
+  )
+
+  for (const list of Array.from(lists)) {
+    const parent = list.parentElement
+    if (!parent || parent === editor) continue
+
+    const before = document.createElement(parent.tagName.toLowerCase())
+    const after = document.createElement(parent.tagName.toLowerCase())
+    const fragment = document.createDocumentFragment()
+    let passedList = false
+
+    for (const child of Array.from(parent.childNodes)) {
+      if (child === list) {
+        passedList = true
+      } else {
+        const target = passedList ? after : before
+        target.append(child)
+      }
+    }
+
+    if (before.textContent?.trim() || before.querySelector("br, strong, em, u")) {
+      fragment.append(before)
+    }
+    fragment.append(list)
+    if (after.textContent?.trim() || after.querySelector("br, strong, em, u")) {
+      fragment.append(after)
+    }
+    parent.replaceWith(fragment)
+  }
+}
+
 const allowedTags = new Set([
   "P",
   "H1",
@@ -82,6 +116,52 @@ export function sanitizeNoteHtml(html: string) {
   return template.innerHTML
 }
 
+export function noteToPlainText(title: string, contentHtml: string) {
+  const template = document.createElement("template")
+  template.innerHTML = contentHtml
+
+  function renderChildren(node: Node): string {
+    return Array.from(node.childNodes, renderNode).join("")
+  }
+
+  function renderNode(node: Node): string {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? ""
+    if (node.nodeType !== Node.ELEMENT_NODE) return ""
+
+    const element = node as HTMLElement
+    const content = renderChildren(element)
+    switch (element.tagName) {
+      case "BR":
+        return "\n"
+      case "P":
+      case "H1":
+      case "H2":
+        return `${content.trim()}\n\n`
+      case "UL":
+        return `${Array.from(
+          element.children,
+          (item) => `- ${renderChildren(item).trim()}`,
+        ).join("\n")}\n\n`
+      case "OL":
+        return `${Array.from(
+          element.children,
+          (item, index) => `${index + 1}. ${renderChildren(item).trim()}`,
+        ).join("\n")}\n\n`
+      default:
+        return content
+    }
+  }
+
+  const cleanTitle = title.trim() || "Untitled note"
+  const body = renderChildren(template.content)
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+
+  return body ? `${cleanTitle}\n\n${body}\n` : `${cleanTitle}\n`
+}
+
 export function isNoteDocument(value: unknown): value is NoteDocument {
   if (!value || typeof value !== "object") return false
   const note = value as Partial<NoteDocument>
@@ -94,11 +174,9 @@ export function isNoteDocument(value: unknown): value is NoteDocument {
 }
 
 export function isNoteRecord(value: unknown): value is NoteRecord {
-  return (
-    isNoteDocument(value) &&
-    typeof (value as Partial<NoteRecord>).id === "string" &&
-    (value as Partial<NoteRecord>).id.length > 0
-  )
+  if (!isNoteDocument(value)) return false
+  const id = (value as Partial<NoteRecord>).id
+  return typeof id === "string" && id.length > 0
 }
 
 export function isNoteCollection(value: unknown): value is NoteCollection {

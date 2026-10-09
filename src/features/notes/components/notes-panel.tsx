@@ -1,13 +1,16 @@
 "use client"
 
-import { Plus, Trash2 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Download, Plus, Trash2 } from "lucide-react"
+import { AnimatePresence, motion, useReducedMotion } from "motion/react"
+import { useEffect, useId, useRef, useState } from "react"
 import Button from "@/components/ui/button"
 import Card from "@/components/ui/card"
 import { Input } from "@/components/ui/field"
 import { localNotesRepository } from "../local-notes.repository"
 import {
   autoListCommandFor,
+  normalizeNoteLists,
+  noteToPlainText,
   sanitizeNoteHtml,
   type NoteCollection,
   type NoteRecord,
@@ -16,6 +19,8 @@ import NotesToolbar from "./notes-toolbar"
 
 export default function NotesPanel() {
   const editorRef = useRef<HTMLDivElement>(null)
+  const noteRef = useRef<NoteRecord | null>(null)
+  const dirtyRef = useRef(false)
   const [collection, setCollection] = useState<NoteCollection | null>(null)
   const [note, setNote] = useState<NoteRecord | null>(null)
   const [ready, setReady] = useState(false)
@@ -28,23 +33,45 @@ export default function NotesPanel() {
       stored.notes.find((item) => item.id === stored.activeNoteId) ??
       stored.notes[0]
     setCollection(stored)
+    noteRef.current = next
     setNote(next)
     if (editorRef.current) editorRef.current.innerHTML = next.contentHtml
     setReady(true)
   }, [])
 
   useEffect(() => {
+    function flushPendingNote() {
+      const current = noteRef.current
+      if (!dirtyRef.current || !current) return
+
+      const saved = { ...current, updatedAt: new Date().toISOString() }
+      localNotesRepository.save(saved)
+      noteRef.current = saved
+      dirtyRef.current = false
+    }
+
+    window.addEventListener("pagehide", flushPendingNote)
+    window.addEventListener("beforeunload", flushPendingNote)
+    return () => {
+      window.removeEventListener("pagehide", flushPendingNote)
+      window.removeEventListener("beforeunload", flushPendingNote)
+    }
+  }, [])
+
+  useEffect(() => {
     if (!ready || !dirty || !note) return
     const noteId = note.id
     const timeout = window.setTimeout(() => {
-      const current = localNotesRepository
-        .load()
-        .notes.find((item) => item.id === noteId)
-      if (!current) return
-      localNotesRepository.save({
-        ...note,
+      const current = noteRef.current
+      if (!dirtyRef.current || !current || current.id !== noteId) return
+      const saved = {
+        ...current,
         updatedAt: new Date().toISOString(),
-      })
+      }
+      localNotesRepository.save(saved)
+      noteRef.current = saved
+      dirtyRef.current = false
+      setNote(saved)
       setCollection(localNotesRepository.load())
       setDirty(false)
     }, 500)
@@ -61,19 +88,61 @@ export default function NotesPanel() {
   }, [pendingDeleteId])
 
   function updateTitle(title: string) {
-    setNote((current) => (current ? { ...current, title } : current))
+    const current = noteRef.current
+    if (!current) return
+    const next = { ...current, title }
+    noteRef.current = next
+    setNote(next)
+    dirtyRef.current = true
     setDirty(true)
   }
 
   function syncEditor() {
     const contentHtml = sanitizeNoteHtml(editorRef.current?.innerHTML ?? "")
-    setNote((current) => (current ? { ...current, contentHtml } : current))
+    const current = noteRef.current
+    if (!current) return
+    const next = { ...current, contentHtml }
+    noteRef.current = next
+    setNote(next)
+    dirtyRef.current = true
     setDirty(true)
   }
 
   function persistCurrent() {
-    if (!note) return
-    localNotesRepository.save({ ...note, updatedAt: new Date().toISOString() })
+    const current = noteRef.current
+    if (!current) return
+    const saved = { ...current, updatedAt: new Date().toISOString() }
+    localNotesRepository.save(saved)
+    noteRef.current = saved
+    dirtyRef.current = false
+    setNote(saved)
+    setDirty(false)
+  }
+
+  function downloadCurrentNote() {
+    syncEditor()
+    const current = noteRef.current
+    if (!current) return
+    persistCurrent()
+
+    const title = current.title.trim() || "Untitled note"
+    const filename =
+      title
+        .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
+        .replace(/[. ]+$/g, "")
+        .slice(0, 100) || "note"
+    const blob = new Blob(
+      [noteToPlainText(current.title, current.contentHtml)],
+      { type: "text/plain;charset=utf-8" },
+    )
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `${filename}.txt`
+    document.body.append(link)
+    link.click()
+    link.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   function selectNote(next: NoteRecord) {
@@ -82,7 +151,9 @@ export default function NotesPanel() {
     localNotesRepository.select(next.id)
     const nextCollection = localNotesRepository.load()
     setCollection(nextCollection)
+    noteRef.current = next
     setNote(next)
+    dirtyRef.current = false
     setDirty(false)
     if (editorRef.current) editorRef.current.innerHTML = next.contentHtml
   }
@@ -92,7 +163,9 @@ export default function NotesPanel() {
     const next = localNotesRepository.create()
     const nextCollection = localNotesRepository.load()
     setCollection(nextCollection)
+    noteRef.current = next
     setNote(next)
+    dirtyRef.current = false
     setDirty(false)
     if (editorRef.current) editorRef.current.innerHTML = next.contentHtml
   }
@@ -107,15 +180,22 @@ export default function NotesPanel() {
         (item) => item.id === nextCollection.activeNoteId,
       ) ?? nextCollection.notes[0]
     setCollection(nextCollection)
+    noteRef.current = next
     setNote(next)
+    dirtyRef.current = false
     setDirty(false)
     setPendingDeleteId(null)
     if (editorRef.current) editorRef.current.innerHTML = next.contentHtml
   }
 
   function runCommand(command: string, value?: string) {
-    editorRef.current?.focus()
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
     document.execCommand(command, false, value)
+    if (command === "insertUnorderedList" || command === "insertOrderedList") {
+      normalizeNoteLists(editor)
+    }
     syncEditor()
   }
 
@@ -207,17 +287,11 @@ export default function NotesPanel() {
           <div className="mt-3 grid gap-1">
             {collection?.notes.map((item) => (
               <div key={item.id} className="flex min-w-0 items-center gap-1">
-                <button
-                  type="button"
+                <NoteTitleButton
+                  title={item.title || "Untitled note"}
+                  selected={item.id === note?.id}
                   onClick={() => selectNote(item)}
-                  className={`min-h-11 min-w-0 flex-1 truncate rounded-xl px-3 text-left text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                    item.id === note?.id
-                      ? "bg-peach text-on-accent"
-                      : "text-muted hover:bg-surface-raised hover:text-ink"
-                  }`}
-                >
-                  {item.title || "Untitled note"}
-                </button>
+                />
                 <Button
                   type="button"
                   size="icon"
@@ -234,14 +308,25 @@ export default function NotesPanel() {
           </div>
         </aside>
         <div className="min-w-0">
-          <Input
-            value={note?.title ?? ""}
-            onChange={(event) => updateTitle(event.target.value)}
-            aria-label="Note title"
-            placeholder="Untitled note"
-            maxLength={120}
-            className="border-0 bg-transparent px-0 text-3xl font-extrabold shadow-none focus-visible:ring-0"
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <Input
+              value={note?.title ?? ""}
+              onChange={(event) => updateTitle(event.target.value)}
+              aria-label="Note title"
+              placeholder="Untitled note"
+              maxLength={120}
+              className="w-auto min-w-0 flex-1 border-0 bg-transparent px-0 text-3xl font-extrabold shadow-none focus-visible:ring-0"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={downloadCurrentNote}
+              disabled={!ready || !note}
+            >
+              <Download aria-hidden="true" size={17} />
+              Download .txt
+            </Button>
+          </div>
           <div className="mt-6">
             <NotesToolbar onCommand={runCommand} />
             <div
@@ -309,5 +394,71 @@ export default function NotesPanel() {
         </div>
       )}
     </Card>
+  )
+}
+
+function NoteTitleButton({
+  title,
+  selected,
+  onClick,
+}: {
+  title: string
+  selected: boolean
+  onClick: () => void
+}) {
+  const tooltipId = useId()
+  const prefersReducedMotion = useReducedMotion()
+  const [isHovered, setIsHovered] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
+  const showTooltip = isHovered || isFocused
+
+  return (
+    <div
+      className="relative min-w-0 flex-1"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
+        aria-label={title}
+        aria-describedby={showTooltip ? tooltipId : undefined}
+        className={`interactive min-h-11 w-full min-w-0 truncate rounded-xl px-3 text-left text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+          selected
+            ? "bg-peach text-on-accent"
+            : "text-muted hover:bg-surface-raised hover:text-ink"
+        }`}
+      >
+        {title}
+      </button>
+      <AnimatePresence>
+        {showTooltip && (
+          <motion.div
+            id={tooltipId}
+            role="tooltip"
+            initial={{
+              opacity: 0,
+              y: prefersReducedMotion ? 0 : -4,
+              scale: prefersReducedMotion ? 1 : 0.98,
+            }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{
+              opacity: 0,
+              y: prefersReducedMotion ? 0 : -3,
+              scale: prefersReducedMotion ? 1 : 0.98,
+            }}
+            transition={{
+              duration: prefersReducedMotion ? 0 : 0.16,
+              ease: "easeOut",
+            }}
+            className="pointer-events-none absolute left-0 top-full z-50 mt-2 w-max max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-line bg-surface px-3 py-2 text-sm font-semibold leading-5 text-ink shadow-lg"
+          >
+            {title}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   )
 }

@@ -55,16 +55,13 @@ export default function TaskPanel({
   return (
     <Card
       className={cn(
-        "flex h-144 min-h-0 flex-col overflow-hidden p-4 sm:p-5",
+        "flex h-full min-h-0 flex-col overflow-hidden p-4 sm:p-5",
         className,
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-wide text-primary-strong">
-            Your plan
-          </p>
-          <h2 className="mt-0.5 text-xl font-extrabold tracking-tight">
+          <h2 className="text-xl font-extrabold tracking-tight">
             Tasks
           </h2>
         </div>
@@ -124,7 +121,7 @@ export default function TaskPanel({
       </div>
 
       <div
-        className="scrollbar-hidden mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain"
+        className="scrollbar-hidden mt-3 max-h-[22rem] min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain"
         aria-live="polite"
       >
         <AnimatePresence initial={false} mode="popLayout">
@@ -195,15 +192,15 @@ function TaskRow({
         y: { duration: 0.2 },
       }}
       className={cn(
-        "rounded-xl border bg-surface-raised px-3 py-2.5",
-        active ? "border-primary-strong" : "border-transparent",
+        "rounded-xl border bg-surface-raised p-3",
+        active ? "border-primary-strong shadow-sm" : "border-line",
       )}
     >
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-start gap-2.5">
         <button
           type="button"
           className={cn(
-            "interactive grid size-11 shrink-0 place-items-center rounded-lg border",
+            "interactive mt-0.5 grid size-11 shrink-0 place-items-center rounded-lg border",
             task.status === "done"
               ? "border-sage bg-sage text-on-accent"
               : "border-line text-muted hover:border-primary",
@@ -225,29 +222,15 @@ function TaskRow({
             <Check aria-hidden="true" size={17} strokeWidth={3} />
           ) : null}
         </button>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pt-0.5">
           <p
             className={cn(
-              "overflow-wrap-anywhere text-base font-extrabold leading-6",
+              "overflow-wrap-anywhere text-lg font-extrabold leading-6 tracking-tight",
               task.status === "done" && "text-muted line-through",
             )}
           >
             {task.title}
           </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <PriorityControl
-              value={task.priority}
-              onChange={(priority) =>
-                dispatch({ type: "set_priority", id: task.id, priority })
-              }
-            />
-            <StatusControl
-              value={task.status}
-              onChange={(status) =>
-                dispatch({ type: "set_status", id: task.id, status })
-              }
-            />
-          </div>
         </div>
         <Button
           size="icon"
@@ -259,14 +242,38 @@ function TaskRow({
           <Trash2 aria-hidden="true" size={17} />
         </Button>
       </div>
+      <div className="mt-3 flex flex-wrap items-end gap-3 border-t border-line pt-2.5">
+        <div>
+          <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-muted">
+            Priority
+          </span>
+          <PriorityControl
+            value={task.priority}
+            onChange={(priority) =>
+              dispatch({ type: "set_priority", id: task.id, priority })
+            }
+          />
+        </div>
+        <div>
+          <span className="mb-1 block text-[10px] font-extrabold uppercase tracking-wide text-muted">
+            Status
+          </span>
+          <StatusControl
+            value={task.status}
+            onChange={(status) =>
+              dispatch({ type: "set_status", id: task.id, status })
+            }
+          />
+        </div>
+      </div>
     </motion.article>
   )
 }
 
-const priorityStyle: Record<TaskPriority, string> = {
-  high: "bg-primary text-on-accent",
-  medium: "bg-peach text-on-accent",
-  low: "bg-lavender text-on-accent",
+const priorityDotStyle: Record<TaskPriority, string> = {
+  high: "bg-danger",
+  medium: "bg-peach",
+  low: "bg-sage",
 }
 
 function PriorityControl({
@@ -291,15 +298,16 @@ function PriorityControl({
           title={`${priority[0].toUpperCase()}${priority.slice(1)} priority`}
           onClick={() => onChange(priority)}
           className={cn(
-            "interactive min-h-10 rounded-md px-2 text-[11px] font-extrabold",
+            "interactive grid size-10 shrink-0 place-items-center rounded-full",
             value === priority
-              ? priorityStyle[priority]
-              : "text-muted hover:bg-surface-raised hover:text-ink",
+              ? "bg-surface-raised ring-2 ring-ink ring-offset-2 ring-offset-canvas"
+              : "hover:bg-surface-raised",
           )}
         >
-          {priority === "medium"
-            ? "Med"
-            : priority[0].toUpperCase() + priority.slice(1)}
+          <span
+            aria-hidden="true"
+            className={cn("size-3 rounded-full", priorityDotStyle[priority])}
+          />
         </button>
       ))}
     </div>
@@ -313,10 +321,9 @@ function StatusControl({
   value: TaskStatus
   onChange: (value: TaskStatus) => void
 }) {
-  const options: Array<{ value: TaskStatus; label: string }> = [
+  const options: Array<{ value: Exclude<TaskStatus, "done">; label: string }> = [
     { value: "todo", label: "To do" },
     { value: "in_progress", label: "Active" },
-    { value: "done", label: "Done" },
   ]
   return (
     <div
@@ -341,10 +348,8 @@ function StatusControl({
         >
           {option.value === "todo" ? (
             <Circle aria-hidden="true" size={13} />
-          ) : option.value === "in_progress" ? (
-            <CircleDot aria-hidden="true" size={13} />
           ) : (
-            <Check aria-hidden="true" size={13} strokeWidth={3} />
+            <CircleDot aria-hidden="true" size={13} />
           )}
           {option.label}
         </button>

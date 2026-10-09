@@ -19,6 +19,7 @@ The current adapters use versioned localStorage records:
 
 - `pomokit:v1:onboarding`
 - `pomokit:v1:preferences`
+- `pomokit:v1:font`
 - `pomokit:v1:tasks`
 - `pomokit:v1:timer`
 
@@ -34,7 +35,7 @@ Running timers persist an absolute `endAt`. The interface recalculates remaining
 
 ## Styling
 
-Tailwind CSS v4 consumes semantic design tokens defined in `src/app/globals.css`. The light and dark modes share token names, which keeps feature components theme-neutral. `next/font` self-hosts Plus Jakarta Sans and Fraunces.
+Tailwind CSS v4 consumes semantic design tokens defined in `src/app/globals.css`. The light and dark modes share token names, which keeps feature components theme-neutral. `next/font` self-hosts Plus Jakarta Sans, Space Grotesk, Outfit, Lexend, Inter, DM Sans, Manrope, Nunito Sans, and Fraunces. Palette selection changes colors independently from the persisted interface-font choice; Fraunces remains reserved for display typography.
 
 ## State choice
 

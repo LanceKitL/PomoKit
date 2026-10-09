@@ -13,6 +13,7 @@ import Card from "@/components/ui/card"
 import { cn } from "@/lib/cn"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TimerPhase, TimerState } from "../timer.model"
+import TimerDigitTransition from "./timer-digit-transition"
 
 export default function TimerPanel({
   timer,
@@ -48,8 +49,7 @@ export default function TimerPanel({
       <div className="relative">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-bold text-primary-strong">Now</p>
-            <h1 className="mt-1 font-display text-3xl font-semibold">
+            <h1 className="font-display text-3xl font-semibold">
               {phaseLabel[timer.phase]}
             </h1>
           </div>
@@ -64,7 +64,7 @@ export default function TimerPanel({
             className="timer-digits text-[clamp(5rem,16vw,10rem)] leading-none font-extrabold text-ink"
             aria-label={`${minutes} minutes and ${seconds} seconds remaining`}
           >
-            {display}
+            <TimerDigitTransition display={display} />
           </p>
           <p className="mx-auto mt-7 max-w-md text-pretty text-base leading-7 text-muted">
             {activeTask ? (

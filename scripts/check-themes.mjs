@@ -159,7 +159,14 @@ if (themes.size === 0) {
   process.exit(1)
 }
 
-const DARK = new Set(["dark", "midnight", "graphite", "ember"])
+const DARK = new Set([
+  "dark",
+  "midnight",
+  "graphite",
+  "ember",
+  "aurora",
+  "orchid",
+])
 const HUE_TOLERANCE = 34
 
 const resolved = new Map()

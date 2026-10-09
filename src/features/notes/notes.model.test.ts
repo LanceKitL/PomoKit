@@ -3,6 +3,8 @@ import {
   autoListCommandFor,
   defaultNote,
   isNoteDocument,
+  normalizeNoteLists,
+  noteToPlainText,
   sanitizeNoteHtml,
 } from "./notes.model"
 
@@ -31,5 +33,59 @@ describe("notes model", () => {
     expect(autoListCommandFor("1.")).toBe("insertOrderedList")
     expect(autoListCommandFor("- item")).toBeNull()
     expect(autoListCommandFor("12.")).toBeNull()
+  })
+
+  it("moves browser-generated lists out of paragraph wrappers", () => {
+    const editor = document.createElement("div")
+    const paragraph = document.createElement("p")
+    const list = document.createElement("ul")
+    const item = document.createElement("li")
+    item.textContent = "List item"
+    list.append(item)
+    paragraph.append(list)
+    editor.append(paragraph)
+
+    normalizeNoteLists(editor)
+
+    expect(editor.innerHTML).toBe("<ul><li>List item</li></ul>")
+  })
+
+  it("preserves paragraph text surrounding a browser-generated list", () => {
+    const editor = document.createElement("div")
+    const paragraph = document.createElement("p")
+    const list = document.createElement("ul")
+    const item = document.createElement("li")
+    item.textContent = "List item"
+    list.append(item)
+    paragraph.append("Before", list, "After")
+    editor.append(paragraph)
+
+    normalizeNoteLists(editor)
+
+    expect(editor.innerHTML).toBe(
+      "<p>Before</p><ul><li>List item</li></ul><p>After</p>",
+    )
+  })
+
+  it("keeps a valid top-level list inside the editable root", () => {
+    const editor = document.createElement("div")
+    editor.innerHTML = "<ul><li>List item</li></ul>"
+
+    normalizeNoteLists(editor)
+
+    expect(editor.innerHTML).toBe("<ul><li>List item</li></ul>")
+  })
+
+  it("exports note titles, paragraphs, and lists as readable plain text", () => {
+    expect(
+      noteToPlainText(
+        "  Plan  ",
+        "<p>First <strong>important</strong> step.</p><ol><li>Draft</li><li>Review</li></ol><p>Done.</p>",
+      ),
+    ).toBe("Plan\n\nFirst important step.\n\n1. Draft\n2. Review\n\nDone.\n")
+  })
+
+  it("uses a fallback title and supports empty note bodies", () => {
+    expect(noteToPlainText("  ", "<p><br></p>")).toBe("Untitled note\n")
   })
 })

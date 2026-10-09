@@ -23,7 +23,7 @@ Add authentication and owner checks before exposing CRUD APIs. Use migrations an
 
 ## BYOK security requirements
 
-The MVP sends a token to a same-origin Route Handler only for a provider check. It uses a fixed provider allowlist, request timeout, no-store responses, and controlled errors. Tokens and raw upstream bodies are never logged or returned.
+The MVP sends a token to a same-origin Route Handler only when the user verifies it. The handler sends a short, non-streaming chat-completion prompt to a fixed provider/model allowlist, with a request timeout, no-store responses, and controlled errors. OpenRouter uses its free-model router; NVIDIA NIM uses `meta/llama-3.1-8b-instruct`, so provider usage limits may apply. Tokens and raw upstream bodies are never logged or returned.
 
 Before persistent Assistant chat ships, add:
 
@@ -44,4 +44,4 @@ Provider URLs must remain server-owned. Do not accept arbitrary proxy destinatio
 { \"provider\": \"openrouter\", \"apiKey\": \"user-supplied-token\" }
 ```
 
-Success returns `{ \"ok\": true, \"provider\": \"openrouter\" }`. Failures return a controlled code: `INVALID_REQUEST`, `INVALID_KEY`, `RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, or `TIMEOUT`.
+Success means the model returned non-empty chat-completion text and returns `{ \"ok\": true, \"provider\": \"openrouter\" }`. Failures return a controlled code: `INVALID_REQUEST`, `INVALID_KEY`, `RATE_LIMITED`, `PROVIDER_UNAVAILABLE`, or `TIMEOUT`.

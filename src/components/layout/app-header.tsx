@@ -1,20 +1,26 @@
 "use client"
 
 import { Bot, Settings } from "lucide-react"
+
 import Link from "next/link"
+
 import { usePathname } from "next/navigation"
+
+import FontPicker from "@/components/ui/font-picker"
+
 import ThemePicker from "@/components/ui/theme-picker"
+
 import Brand from "./brand"
 
 export default function AppHeader() {
   const pathname = usePathname() ?? ""
 
   return (
-    <header className="flex items-center justify-between gap-4">
+    <header className="flex min-h-12 w-full items-center justify-between gap-4">
       <Brand />
       <nav
         aria-label="Main navigation"
-        className="flex items-center gap-1 sm:gap-1.5"
+        className="flex items-center gap-0 sm:gap-1.5"
       >
         <NavLink
           href="/settings/assistant"
@@ -31,6 +37,7 @@ export default function AppHeader() {
           <Settings aria-hidden="true" size={19} />
         </NavLink>
         <ThemePicker />
+        <FontPicker />
       </nav>
     </header>
   )
@@ -38,13 +45,19 @@ export default function AppHeader() {
 
 function NavLink({
   href,
+
   label,
+
   active,
+
   children,
 }: {
   href: string
+
   label: string
+
   active: boolean
+
   children: React.ReactNode
 }) {
   return (

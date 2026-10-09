@@ -4,6 +4,7 @@ export type Preferences = {
   shortBreakMinutes: number
   longBreakMinutes: number
   sessionsBeforeLongBreak: number
+  soundEnabled: boolean
 }
 
 export const defaultPreferences: Preferences = {
@@ -12,4 +13,5 @@ export const defaultPreferences: Preferences = {
   shortBreakMinutes: 5,
   longBreakMinutes: 15,
   sessionsBeforeLongBreak: 4,
+  soundEnabled: true,
 }

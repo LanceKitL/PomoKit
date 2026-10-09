@@ -23,7 +23,11 @@ export const localTimerRepository: TimerRepository = {
   load() {
     const timer = readStorage<TimerState | null>(STORAGE_KEYS.timer, null)
     return isTimer(timer)
-      ? { ...timer, breakLocked: timer.breakLocked === true }
+      ? {
+          ...timer,
+          breakLocked: timer.breakLocked === true,
+          checkInPending: timer.checkInPending === true,
+        }
       : null
   },
   save(timer) {

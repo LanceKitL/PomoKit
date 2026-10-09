@@ -7,6 +7,7 @@ import TaskPanel from "@/features/tasks/components/task-panel"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TasksAction } from "@/features/tasks/tasks.reducer"
 import type { TimerState } from "../timer.model"
+import TimerDigitTransition from "./timer-digit-transition"
 import { phaseLabel } from "./timer-panel"
 
 export default function FocusDock({
@@ -104,7 +105,7 @@ export default function FocusDock({
                 {phaseLabel[timer.phase]}
               </span>
               <span className="timer-digits block text-xl font-extrabold text-ink">
-                {display}
+                <TimerDigitTransition display={display} />
               </span>
               <span className="block truncate text-xs font-bold text-muted">
                 {activeTask?.title ?? "No active task"}

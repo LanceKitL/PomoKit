@@ -31,84 +31,112 @@ export const themeOptions = [
     value: "light",
     label: "Light",
     description: "Warm paper surfaces under a soft violet desk light.",
+    appearance: "light",
     Icon: Sun,
   },
   {
     value: "sage",
     label: "Sage",
     description: "Leafy green surfaces for a grounded, quiet desk.",
+    appearance: "light",
     Icon: Leaf,
   },
   {
     value: "emerald",
     label: "Emerald",
     description: "Refreshing mint-teal surfaces for an invigorating focus space.",
+    appearance: "light",
     Icon: Sparkles,
   },
   {
     value: "ocean",
     label: "Ocean",
     description: "Clear blue surfaces for a crisp, open session.",
+    appearance: "light",
     Icon: Waves,
   },
   {
     value: "cloudy",
     label: "Cloudy",
     description: "Soft misty blue-grey surfaces for a cozy, quiet desk.",
+    appearance: "light",
     Icon: Cloud,
   },
   {
     value: "sunflower",
     label: "Sunflower",
     description: "Cheerful sky blue surfaces with warm sunflower yellow accents.",
+    appearance: "light",
     Icon: Flower,
   },
   {
     value: "citrus",
     label: "Citrus",
     description: "Golden surfaces with an energising, sunlit rhythm.",
+    appearance: "light",
     Icon: SunMedium,
   },
   {
     value: "rose",
     label: "Rose",
     description: "Soft blush neutrals for a thoughtful, editorial desk.",
+    appearance: "light",
     Icon: Flower2,
   },
   {
     value: "violet",
     label: "Violet",
     description: "Soft lavender-amethyst surfaces for a calm, creative atmosphere.",
+    appearance: "light",
     Icon: Palette,
   },
   {
     value: "dark",
     label: "Dark",
     description: "Deep plum surfaces with restful pastel accents.",
+    appearance: "dark",
     Icon: Moon,
   },
   {
     value: "midnight",
     label: "Midnight",
     description: "Deep indigo surfaces for a quiet late-night session.",
+    appearance: "dark",
     Icon: MoonStar,
   },
   {
     value: "graphite",
     label: "Graphite",
     description: "Ink-dark neutrals with mineral gold for deep work.",
+    appearance: "dark",
     Icon: Gem,
   },
   {
     value: "ember",
     label: "Ember",
     description: "Deep espresso surfaces with glowing copper amber accents.",
+    appearance: "dark",
     Icon: Flame,
+  },
+  {
+    value: "aurora",
+    label: "Aurora",
+    description: "Deep teal surfaces with luminous, cool northern-light accents.",
+    appearance: "dark",
+    Icon: Sparkles,
+  },
+  {
+    value: "orchid",
+    label: "Orchid",
+    description: "Dusky plum surfaces with vivid orchid accents for a creative night desk.",
+    appearance: "dark",
+    Icon: Flower,
   },
 ] as const satisfies ReadonlyArray<{
   value: string
   label: string
   description: string
+  appearance: "light" | "dark"
   Icon: LucideIcon
 }>
 

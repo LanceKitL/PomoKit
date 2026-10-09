@@ -21,6 +21,12 @@ describe("ThemePicker component", () => {
     render(<ThemePicker />)
     const trigger = screen.getByRole("button", { name: /Theme:/i })
     expect(trigger).toBeInTheDocument()
+    const swatches = trigger.querySelector('[aria-hidden="true"]')
+    expect(swatches).toHaveClass("gap-0.5")
+    expect(swatches?.children).toHaveLength(3)
+    for (const swatch of Array.from(swatches?.children ?? [])) {
+      expect(swatch).toHaveClass("size-3")
+    }
 
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
 

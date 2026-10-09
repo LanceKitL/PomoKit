@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react"
 import Button from "@/components/ui/button"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TimerState } from "../timer.model"
+import TimerDigitTransition from "./timer-digit-transition"
 import { phaseLabel } from "./timer-panel"
 
 export default function FocusOverlay({
@@ -28,14 +29,19 @@ export default function FocusOverlay({
 
   useEffect(() => {
     const dialog = dialogRef.current
+    const previousBodyOverflow = document.body.style.overflow
+    const previousHtmlOverflow = document.documentElement.style.overflow
     const previousFocus =
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null
     if (!dialog) return
+    document.body.style.overflow = "hidden"
+    document.documentElement.style.overflow = "hidden"
     dialog.focus()
 
     function trapTab(event: KeyboardEvent) {
+      if (!dialog) return
       if (event.key !== "Tab") return
       const focusable = Array.from(
         dialog.querySelectorAll<HTMLElement>(
@@ -61,6 +67,8 @@ export default function FocusOverlay({
     dialog.addEventListener("keydown", trapTab)
     return () => {
       dialog.removeEventListener("keydown", trapTab)
+      document.body.style.overflow = previousBodyOverflow
+      document.documentElement.style.overflow = previousHtmlOverflow
       if (previousFocus?.isConnected) previousFocus.focus()
     }
   }, [])
@@ -71,57 +79,61 @@ export default function FocusOverlay({
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="focus-overlay-title"
+      aria-label="Focus timer"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ type: "spring", bounce: 0, duration: 0.38 }}
-      className="fixed inset-0 z-50 grid min-h-screen place-items-center overflow-y-auto bg-canvas p-6"
+      className="fixed inset-0 z-50 grid h-screen h-[100svh] place-items-center overflow-hidden bg-canvas px-4 py-6 sm:px-8"
     >
       <div
         aria-hidden="true"
-        className="absolute inset-0 decorative-grid opacity-25"
+        className="absolute inset-0 decorative-grid opacity-15"
       />
-      <div className="relative w-full max-w-4xl text-center">
-        <h2
-          id="focus-overlay-title"
-          className="text-sm font-extrabold tracking-[0.18em] text-primary-strong uppercase"
+      {!locked && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onClose}
+          aria-label="Leave focus mode"
+          title="Leave focus mode (Esc)"
+          className="absolute end-4 top-4 z-10 text-muted sm:end-7 sm:top-7"
         >
-          {phaseLabel[timer.phase]}
-        </h2>
-        <p className="timer-digits mt-7 text-7xl leading-none font-extrabold sm:text-8xl lg:text-9xl">
-          {display}
-        </p>
-        <p className="mx-auto mt-7 max-w-xl text-pretty text-lg leading-8 text-muted">
-          {activeTask
-            ? activeTask.title
-            : "One quiet session. Nothing else needs your attention."}
+          <Minimize2 aria-hidden="true" size={21} />
+        </Button>
+      )}
+      <div className="relative flex h-full w-full flex-col items-center justify-center text-center">
+        {activeTask && (
+          <p className="mb-4 max-w-3xl truncate px-3 text-base font-semibold text-muted sm:text-xl">
+            {activeTask.title}
+          </p>
+        )}
+        <p
+          className="timer-digits whitespace-nowrap text-[clamp(4rem,min(27vw,34vh),24rem)] leading-[0.88] font-extrabold tracking-[-0.06em] text-ink"
+          aria-label={`${phaseLabel[timer.phase]}: ${display}`}
+        >
+          <TimerDigitTransition display={display} />
         </p>
         {locked ? (
-          <p className="mt-10 text-base font-bold text-primary-strong">
-            Break in progress. Your workspace will unlock when the timer ends.
+          <p className="mt-8 text-sm font-bold text-primary-strong sm:text-base">
+            Break in progress · workspace locked
           </p>
         ) : (
           <>
-            <div className="mt-10 flex justify-center gap-3">
-              <Button size="lg" onClick={onStartPause}>
+            <div className="mt-9 flex justify-center">
+              <Button size="lg" onClick={onStartPause} className="min-w-40">
                 {timer.status === "running" ? (
                   <>
                     <Pause aria-hidden="true" size={20} /> Pause
                   </>
                 ) : (
                   <>
-                    <Play aria-hidden="true" size={20} /> Resume
+                    <Play aria-hidden="true" size={20} />
+                    {timer.status === "paused" ? "Resume" : "Start session"}
                   </>
                 )}
               </Button>
-              <Button size="lg" variant="secondary" onClick={onClose}>
-                <Minimize2 aria-hidden="true" size={20} /> Leave focus mode
-              </Button>
             </div>
-            <p className="mt-6 text-sm text-muted">
-              Press Escape to return to your workspace.
-            </p>
           </>
         )}
       </div>

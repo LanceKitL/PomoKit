@@ -1,50 +1,14 @@
 "use client"
 
 import React, { useEffect, useId, useRef, useState } from "react"
-import { Check } from "lucide-react"
+import { Check, Type } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react"
-import { useTheme } from "next-themes"
 import { cn } from "@/lib/cn"
-import {
-  defaultThemeName,
-  isThemeName,
-  swatchVar,
-  themeOption,
-  themeOptions,
-  type ThemeName,
-} from "@/lib/themes"
+import { fontOption, fontOptions } from "@/features/preferences/font.model"
+import type { FontName } from "@/features/preferences/font.model"
+import { useFont } from "@/providers/font-provider"
 
-const slots = ["canvas", "surface", "accent"] as const
-export function ThemeSwatches({
-  value,
-  size = "sm",
-}: {
-  value: ThemeName
-  size?: "sm" | "lg"
-}) {
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        "flex shrink-0 items-center",
-        size === "lg" ? "gap-2" : "gap-0.5",
-      )}
-    >
-      {slots.map((slot) => (
-        <span
-          key={slot}
-          style={{ backgroundColor: `var(${swatchVar(value, slot)})` }}
-          className={cn(
-            "rounded-full border border-line",
-            size === "lg" ? "size-7" : "size-3",
-          )}
-        />
-      ))}
-    </span>
-  )
-}
-
-export default function ThemePicker({
+export default function FontPicker({
   id,
   className,
   variant = "compact",
@@ -53,19 +17,17 @@ export default function ThemePicker({
   className?: string
   variant?: "compact" | "full"
 }) {
-  const { theme, setTheme } = useTheme()
+  const { font, setFont } = useFont()
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([])
   const listId = useId()
-
-  const current = isThemeName(theme) ? theme : defaultThemeName
-  const selected = themeOption(current)
+  const selected = fontOption(font)
   const selectedIndex = Math.max(
     0,
-    themeOptions.findIndex((option) => option.value === current),
+    fontOptions.findIndex((option) => option.value === font),
   )
 
   function openAt(index: number) {
@@ -73,15 +35,14 @@ export default function ThemePicker({
     setOpen(true)
   }
 
-  function chooseTheme(value: ThemeName) {
-    setTheme(value)
-    setOpen(false)
-    triggerRef.current?.focus()
-  }
-
   function close(returnFocus: boolean) {
     setOpen(false)
     if (returnFocus) triggerRef.current?.focus()
+  }
+
+  function chooseFont(value: FontName) {
+    setFont(value)
+    close(true)
   }
 
   useEffect(() => {
@@ -114,10 +75,9 @@ export default function ThemePicker({
   }, [open, activeIndex])
 
   function move(delta: number) {
-    setActiveIndex((index) => {
-      const next = (index + delta + themeOptions.length) % themeOptions.length
-      return next
-    })
+    setActiveIndex(
+      (index) => (index + delta + fontOptions.length) % fontOptions.length,
+    )
   }
 
   function onTriggerKeyDown(event: React.KeyboardEvent) {
@@ -126,7 +86,7 @@ export default function ThemePicker({
       openAt(selectedIndex)
     } else if (event.key === "ArrowUp") {
       event.preventDefault()
-      openAt(themeOptions.length - 1)
+      openAt(fontOptions.length - 1)
     }
   }
 
@@ -146,7 +106,12 @@ export default function ThemePicker({
         break
       case "End":
         event.preventDefault()
-        setActiveIndex(themeOptions.length - 1)
+        setActiveIndex(fontOptions.length - 1)
+        break
+      case "Enter":
+      case " ":
+        event.preventDefault()
+        chooseFont(fontOptions[activeIndex].value)
         break
       case "Escape":
         event.preventDefault()
@@ -169,7 +134,7 @@ export default function ThemePicker({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
-        aria-label={`Theme: ${selected.label}`}
+        aria-label={`Font: ${selected.label}`}
         onClick={() => (open ? close(false) : openAt(selectedIndex))}
         onKeyDown={onTriggerKeyDown}
         className={cn(
@@ -179,7 +144,7 @@ export default function ThemePicker({
             : "flex min-h-11 w-full items-center gap-2.5 rounded-xl border border-line bg-surface-raised px-3 text-sm font-bold",
         )}
       >
-        <ThemeSwatches value={current} />
+        <Type aria-hidden="true" size={19} />
         {variant === "full" ? (
           <span className="flex-1 text-start">{selected.label}</span>
         ) : null}
@@ -189,21 +154,19 @@ export default function ThemePicker({
           <motion.ul
             id={listId}
             role="listbox"
-            aria-label="Choose theme"
+            aria-label="Choose font"
             initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
             onKeyDown={onListKeyDown}
             className={cn(
-              "absolute top-[calc(100%+0.5rem)] z-50 max-h-[min(21rem,60vh)] overflow-y-auto rounded-2xl border border-line bg-surface p-2 paper-shadow",
-              variant === "full"
-                ? "start-0 w-full"
-                : "end-0 w-[min(16rem,calc(100vw-2rem))]",
+              "absolute top-[calc(100%+0.5rem)] z-50 min-w-64 rounded-2xl border border-line bg-surface p-2 paper-shadow",
+              variant === "full" ? "start-0 w-full" : "end-0",
             )}
           >
-            {themeOptions.map((option, index) => {
-              const isSelected = option.value === current
+            {fontOptions.map((option, index) => {
+              const isSelected = option.value === font
               return (
                 <li key={option.value} role="presentation">
                   <button
@@ -216,17 +179,24 @@ export default function ThemePicker({
                     aria-selected={isSelected}
                     tabIndex={index === activeIndex ? 0 : -1}
                     onMouseEnter={() => setActiveIndex(index)}
-                    onClick={() => chooseTheme(option.value)}
+                    onClick={() => chooseFont(option.value)}
                     className={cn(
-                      "interactive flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-start text-sm font-bold",
-                      index === activeIndex
-                        ? "bg-surface-raised"
-                        : "hover:bg-surface-raised",
+                      "interactive flex min-h-14 w-full items-center gap-3 rounded-xl px-3 text-start hover:bg-surface-raised",
+                      index === activeIndex && "bg-surface-raised",
                     )}
                   >
-                    <ThemeSwatches value={option.value} />
-                    <span className="flex-1">{option.label}</span>
-                    {isSelected ? (
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-xs font-semibold text-muted">
+                        {option.label}
+                      </span>
+                      <span
+                        className="block truncate text-lg font-semibold text-ink"
+                        style={{ fontFamily: option.preview }}
+                      >
+                        PomoKit
+                      </span>
+                    </span>
+                    {isSelected && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
@@ -242,7 +212,7 @@ export default function ThemePicker({
                           size={17}
                         />
                       </motion.span>
-                    ) : null}
+                    )}
                   </button>
                 </li>
               )

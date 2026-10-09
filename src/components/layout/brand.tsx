@@ -1,16 +1,27 @@
+import Image from "next/image"
+
 import Link from "next/link"
-import { TimerReset } from "lucide-react"
+
+import logo from "../../../logo.png"
 
 export default function Brand() {
   return (
     <Link
       href="/focus"
-      className="inline-flex min-h-11 items-center gap-2 rounded-xl text-xl font-extrabold tracking-tight text-ink"
+      aria-label="PomoKit home"
+      className="inline-flex min-h-12 items-center gap-2 rounded-xl text-xl font-extrabold tracking-tight text-ink"
     >
-      <span className="grid size-10 place-items-center rounded-xl bg-primary text-on-accent">
-        <TimerReset aria-hidden="true" size={20} strokeWidth={2.5} />
+      <Image
+        src={logo}
+        alt=""
+        width={48}
+        height={48}
+        priority
+        className="size-12 shrink-0 rounded-xl object-contain"
+      />
+      <span className="hidden font-display text-2xl min-[420px]:inline">
+        PomoKit
       </span>
-      <span className="font-display text-2xl">PomoKit</span>
     </Link>
   )
 }

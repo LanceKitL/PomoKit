@@ -27,11 +27,16 @@ export const localPreferencesRepository: PreferencesRepository = {
       !validDuration(value.focusMinutes) ||
       !validDuration(value.shortBreakMinutes) ||
       !validDuration(value.longBreakMinutes) ||
-      !validDuration(value.sessionsBeforeLongBreak)
+      !validDuration(value.sessionsBeforeLongBreak) ||
+      (value.soundEnabled !== undefined &&
+        typeof value.soundEnabled !== "boolean")
     ) {
       return defaultPreferences
     }
-    return value
+    return {
+      ...value,
+      soundEnabled: value.soundEnabled ?? defaultPreferences.soundEnabled,
+    }
   },
   save(preferences) {
     writeStorage(STORAGE_KEYS.preferences, preferences)
