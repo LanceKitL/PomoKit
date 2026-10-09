@@ -1,6 +1,6 @@
 "use client"
 
-import { Bot, Settings } from "lucide-react"
+import { Bot, Github, Settings } from "lucide-react"
 
 import Link from "next/link"
 
@@ -39,6 +39,18 @@ export default function AppHeader() {
         <ThemePicker />
         <FontPicker />
       </nav>
+      <a
+        href="https://github.com/LanceKitL/PomoKit"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Star PomoKit on GitHub"
+        className="interactive inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl px-2.5 text-muted hover:-translate-y-0.5 hover:bg-peach hover:text-ink focus-visible:-translate-y-0.5 focus-visible:bg-peach focus-visible:text-ink sm:px-3"
+      >
+        <Github aria-hidden="true" size={19} />
+        <span className="hidden text-sm font-semibold min-[520px]:inline">
+          Star this on GitHub
+        </span>
+      </a>
     </header>
   )
 }
