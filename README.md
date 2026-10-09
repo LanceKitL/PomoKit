@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./logo.png" alt="PomoKit logo" width="112" />
+  <img src="./public/logo.png" alt="PomoKit logo" width="112" />
   <h1>PomoKit</h1>
   <p><strong>A calmer space to plan, focus, and reset.</strong></p>
   <p>

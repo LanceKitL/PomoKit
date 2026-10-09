@@ -2,8 +2,6 @@ import Image from "next/image"
 
 import Link from "next/link"
 
-import logo from "../../../logo.png"
-
 export default function Brand() {
   return (
     <Link
@@ -12,7 +10,7 @@ export default function Brand() {
       className="inline-flex min-h-12 items-center gap-2 rounded-xl text-xl font-extrabold tracking-tight text-ink"
     >
       <Image
-        src={logo}
+        src="/logo.png"
         alt=""
         width={48}
         height={48}
