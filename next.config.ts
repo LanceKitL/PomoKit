@@ -2,6 +2,9 @@ import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  outputFileTracingIncludes: {
+    "/api/break-gifs": ["./public/break/*.gif"],
+  },
   async headers() {
     return [
       {

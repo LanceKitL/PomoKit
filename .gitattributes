@@ -149,3 +149,4 @@
 # during builds, without relying on Git LFS smudge support.
 public/logo.png      -filter -diff -merge -text
 src/app/icon.png     -filter -diff -merge -text
+public/break/*.gif   -filter -diff -merge -text
