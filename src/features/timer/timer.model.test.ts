@@ -6,6 +6,7 @@ import {
   nextPhase,
   reconcileTimer,
   resolveFocusCheckIn,
+  startTimer,
 } from "./timer.model"
 
 describe("timer model", () => {
@@ -53,6 +54,21 @@ describe("timer model", () => {
     expect(nextPhase(timer, defaultPreferences).phase).toBe("focus")
   })
 
+  it("starts a skipped-to break as a protected break", () => {
+    const skippedToBreak = nextPhase(
+      createTimer(defaultPreferences),
+      defaultPreferences,
+    )
+    const started = startTimer(skippedToBreak, 10_000)
+
+    expect(started.phase).toBe("short_break")
+    expect(started.status).toBe("running")
+    expect(started.breakLocked).toBe(true)
+    expect(started.endAt).toBe(
+      10_000 + defaultPreferences.shortBreakMinutes * 60_000,
+    )
+  })
+
   it("waits for a check-in when a focus session completes", () => {
     const timer = {
       ...createTimer(defaultPreferences),
@@ -96,6 +112,27 @@ describe("timer model", () => {
     const next = resolveFocusCheckIn(
       pending,
       "complete",
+      defaultPreferences,
+      10_000,
+    )
+
+    expect(next.phase).toBe("short_break")
+    expect(next.status).toBe("running")
+    expect(next.breakLocked).toBe(true)
+    expect(next.endAt).toBe(
+      10_000 + defaultPreferences.shortBreakMinutes * 60_000,
+    )
+    expect(next.checkInPending).toBe(false)
+  })
+
+  it("starts and locks a break when the user chooses to take a break", () => {
+    const pending = {
+      ...nextPhase(createTimer(defaultPreferences), defaultPreferences),
+      checkInPending: true,
+    }
+    const next = resolveFocusCheckIn(
+      pending,
+      "break",
       defaultPreferences,
       10_000,
     )

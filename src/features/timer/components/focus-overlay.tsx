@@ -2,10 +2,14 @@
 
 import { Minimize2, Pause, Play } from "lucide-react"
 import { motion } from "motion/react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TimerState } from "../timer.model"
+import {
+  createBreakGifPositions,
+  type BreakGifPosition,
+} from "./break-gif-layout"
 import TimerDigitTransition from "./timer-digit-transition"
 import { phaseLabel } from "./timer-panel"
 
@@ -15,17 +19,97 @@ export default function FocusOverlay({
   onStartPause,
   onClose,
   locked,
+  fullscreenError,
 }: {
   timer: TimerState
   activeTask: Task | null
   onStartPause: () => void
   onClose: () => void
   locked: boolean
+  fullscreenError: string | null
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const [breakGifs, setBreakGifs] = useState<
+    { src: string; aspectRatio: number }[]
+  >([])
+  const [breakGifError, setBreakGifError] = useState<string | null>(null)
+  const [breakGifPositions, setBreakGifPositions] = useState<
+    BreakGifPosition[]
+  >([])
   const display = `${String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:${String(
     timer.remainingSeconds % 60,
   ).padStart(2, "0")}`
+
+  useEffect(() => {
+    if (!locked) {
+      setBreakGifs([])
+      setBreakGifError(null)
+      setBreakGifPositions([])
+      return
+    }
+
+    const controller = new AbortController()
+    setBreakGifError(null)
+    void fetch("/api/break-gifs", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`GIF list request failed with ${response.status}`)
+        }
+
+        const result: unknown = await response.json()
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("gifs" in result) ||
+          !Array.isArray(result.gifs) ||
+          !result.gifs.every(
+            (gif) =>
+              typeof gif === "object" &&
+              gif !== null &&
+              "src" in gif &&
+              typeof gif.src === "string" &&
+              "aspectRatio" in gif &&
+              typeof gif.aspectRatio === "number" &&
+              Number.isFinite(gif.aspectRatio) &&
+              gif.aspectRatio > 0,
+          )
+        ) {
+          throw new Error("GIF list response has an invalid format")
+        }
+
+        setBreakGifs(result.gifs)
+      })
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        console.error("Unable to load break GIFs", error)
+        setBreakGifError(
+          "Break GIFs could not be loaded. The protected break will continue.",
+        )
+      })
+
+    return () => controller.abort()
+  }, [locked])
+
+  useEffect(() => {
+    if (!locked) return
+
+    function updateBreakGifPositions() {
+      setBreakGifPositions(
+        createBreakGifPositions(
+          breakGifs,
+          window.innerWidth,
+          window.innerHeight,
+        ),
+      )
+    }
+
+    updateBreakGifPositions()
+    window.addEventListener("resize", updateBreakGifPositions)
+    return () => window.removeEventListener("resize", updateBreakGifPositions)
+  }, [breakGifs, locked])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -90,6 +174,27 @@ export default function FocusOverlay({
         aria-hidden="true"
         className="absolute inset-0 decorative-grid opacity-15"
       />
+      {locked ? (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        >
+          {breakGifPositions.map(({ src, left, top, width, height }) => (
+            <img
+              key={src}
+              src={src}
+              alt=""
+              className="absolute opacity-75"
+              style={{
+                left: `${left}px`,
+                top: `${top}px`,
+                width: `${width}px`,
+                height: `${height}px`,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
       {!locked && (
         <Button
           size="icon"
@@ -102,7 +207,7 @@ export default function FocusOverlay({
           <Minimize2 aria-hidden="true" size={21} />
         </Button>
       )}
-      <div className="relative flex h-full w-full flex-col items-center justify-center text-center">
+      <div className="relative z-10 flex h-full w-full flex-col items-center justify-center text-center">
         {activeTask && (
           <p className="mb-4 max-w-3xl truncate px-3 text-base font-semibold text-muted sm:text-xl">
             {activeTask.title}
@@ -115,9 +220,25 @@ export default function FocusOverlay({
           <TimerDigitTransition display={display} />
         </p>
         {locked ? (
-          <p className="mt-8 text-sm font-bold text-primary-strong sm:text-base">
-            Break in progress · workspace locked
-          </p>
+          <div className="mt-8 space-y-2">
+            <p className="text-sm font-bold text-primary-strong sm:text-base">
+              Break in progress · workspace locked
+            </p>
+            <p className="text-sm text-muted">
+              Keyboard controls are disabled in PomoKit until the break ends.
+              Browser and system shortcuts may still work.
+            </p>
+            {fullscreenError ? (
+              <p role="status" aria-live="polite" className="text-sm text-muted">
+                {fullscreenError}
+              </p>
+            ) : null}
+            {breakGifError ? (
+              <p role="status" aria-live="polite" className="text-sm text-muted">
+                {breakGifError}
+              </p>
+            ) : null}
+          </div>
         ) : (
           <>
             <div className="mt-9 flex justify-center">

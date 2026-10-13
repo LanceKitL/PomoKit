@@ -79,6 +79,15 @@ export function nextPhase(
   }
 }
 
+export function startTimer(state: TimerState, now: number): TimerState {
+  return {
+    ...state,
+    status: "running",
+    endAt: now + state.remainingSeconds * 1000,
+    breakLocked: state.phase !== "focus",
+  }
+}
+
 export type FocusCheckInChoice =
   | "complete"
   | "continue"

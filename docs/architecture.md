@@ -33,6 +33,8 @@ Assistant credentials are the exception: `pomokit:v1:assistant-session` uses ses
 
 Running timers persist an absolute `endAt`. The interface recalculates remaining time from the clock on each visual tick, tab visibility change, and hydration. An interval is only a render trigger; it is not the source of truth. Completed phases transition once to an idle next phase and never auto-start.
 
+Choosing “Take a break” requests browser fullscreen from that user action when supported. During a protected break, keyboard interaction within PomoKit is blocked; the app cannot disable operating-system or browser shortcuts, and Escape remains available to leave fullscreen.
+
 ## Styling
 
 Tailwind CSS v4 consumes semantic design tokens defined in `src/app/globals.css`. The light and dark modes share token names, which keeps feature components theme-neutral. `next/font` self-hosts Plus Jakarta Sans, Space Grotesk, Outfit, Lexend, Inter, DM Sans, Manrope, Nunito Sans, and Fraunces. Palette selection changes colors independently from the persisted interface-font choice; Fraunces remains reserved for display typography.

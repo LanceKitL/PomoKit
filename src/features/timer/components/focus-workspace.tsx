@@ -27,6 +27,7 @@ import {
   nextPhase,
   reconcileTimer,
   resolveFocusCheckIn,
+  startTimer,
   type FocusCheckInChoice,
   type TimerState,
 } from "../timer.model"
@@ -45,11 +46,13 @@ export default function FocusWorkspace() {
   const [ready, setReady] = useState(false)
   const [focusMode, setFocusMode] = useState(false)
   const [announcement, setAnnouncement] = useState("")
+  const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const [timeUpNotice, setTimeUpNotice] = useState(false)
   const [dockVisible, setDockVisible] = useState(false)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const titleBeforeTimerRef = useRef<string | null>(null)
   const timeUpTimeoutRef = useRef<number | null>(null)
+  const breakFullscreenRequestedRef = useRef(false)
   const breakLocked = timer.breakLocked && timer.phase !== "focus"
 
   const reconcileCurrentTimer = useCallback(() => {
@@ -187,6 +190,38 @@ export default function FocusWorkspace() {
   }, [breakLocked, focusMode])
 
   useEffect(() => {
+    if (!breakLocked) {
+      if (
+        breakFullscreenRequestedRef.current &&
+        document.fullscreenElement
+      ) {
+        void document.exitFullscreen().catch(() => {
+          setAnnouncement(
+            "The protected break ended, but fullscreen could not be closed. Press Escape to leave fullscreen.",
+          )
+        })
+      }
+      breakFullscreenRequestedRef.current = false
+      return
+    }
+
+    function blockWorkspaceKeyboard(event: KeyboardEvent) {
+      if (event.key === "Escape") return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+
+    window.addEventListener("keydown", blockWorkspaceKeyboard, true)
+    window.addEventListener("keypress", blockWorkspaceKeyboard, true)
+    window.addEventListener("keyup", blockWorkspaceKeyboard, true)
+    return () => {
+      window.removeEventListener("keydown", blockWorkspaceKeyboard, true)
+      window.removeEventListener("keypress", blockWorkspaceKeyboard, true)
+      window.removeEventListener("keyup", blockWorkspaceKeyboard, true)
+    }
+  }, [breakLocked])
+
+  useEffect(() => {
     if (
       timer.activeTaskId &&
       !tasks.some(
@@ -200,8 +235,37 @@ export default function FocusWorkspace() {
   const activeTask =
     tasks.find((task) => task.id === timer.activeTaskId) ?? null
 
+  const requestBreakFullscreen = useCallback(() => {
+    setFullscreenError(null)
+    try {
+      const fullscreenRequest = document.documentElement.requestFullscreen?.()
+      if (!fullscreenRequest) {
+        setFullscreenError(
+          "Fullscreen is unavailable in this browser. The protected break will still begin.",
+        )
+      } else {
+        void fullscreenRequest
+          .then(() => {
+            breakFullscreenRequestedRef.current = true
+          })
+          .catch(() => {
+            setFullscreenError(
+              "Fullscreen was blocked by the browser. The protected break will still begin.",
+            )
+          })
+      }
+    } catch {
+      setFullscreenError(
+        "Fullscreen was blocked by the browser. The protected break will still begin.",
+      )
+    }
+  }, [])
+
   const handleCheckIn = useCallback(
     (choice: FocusCheckInChoice) => {
+      if (choice === "break") {
+        requestBreakFullscreen()
+      }
       if (choice === "complete" && activeTask) {
         dispatch({
           type: "set_status",
@@ -213,22 +277,31 @@ export default function FocusWorkspace() {
         resolveFocusCheckIn(current, choice, preferences, Date.now()),
       )
     },
-    [activeTask, preferences],
+    [activeTask, preferences, requestBreakFullscreen],
   )
 
   const startPause = useCallback(() => {
+    if (
+      timer.status !== "running" &&
+      timer.phase !== "focus" &&
+      !timer.breakLocked
+    ) {
+      requestBreakFullscreen()
+    }
     setTimer((current) => {
       if (current.status === "running") {
         const reconciled = reconcileTimer(current, Date.now(), preferences)
         return { ...reconciled, status: "paused", endAt: null }
       }
-      return {
-        ...current,
-        status: "running",
-        endAt: Date.now() + current.remainingSeconds * 1000,
-      }
+      return startTimer(current, Date.now())
     })
-  }, [preferences])
+  }, [
+    preferences,
+    requestBreakFullscreen,
+    timer.breakLocked,
+    timer.phase,
+    timer.status,
+  ])
 
   function reset() {
     setTimer((current) => ({
@@ -293,6 +366,7 @@ export default function FocusWorkspace() {
             onStartPause={startPause}
             onClose={() => setFocusMode(false)}
             locked={breakLocked}
+            fullscreenError={fullscreenError}
           />
         ) : null}
       </AnimatePresence>
