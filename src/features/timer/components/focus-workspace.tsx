@@ -19,6 +19,11 @@ import { useSoundSettings } from "@/providers/sound-provider"
 import { localTasksRepository } from "@/features/tasks/local-tasks.repository"
 import TaskPanel from "@/features/tasks/components/task-panel"
 import { tasksReducer } from "@/features/tasks/tasks.reducer"
+import { isFloatingTimerSupported } from "../floating-pip"
+import {
+  notifySessionEnded,
+  requestNotificationPermission,
+} from "../session-notifications"
 import { localTimerRepository } from "../local-timer.repository"
 import {
   createTimer,
@@ -33,6 +38,7 @@ import {
 } from "../timer.model"
 import FocusOverlay from "./focus-overlay"
 import FocusDock from "./focus-dock"
+import FloatingTimer from "./floating-timer"
 import SessionCheckIn from "./session-check-in"
 import TimerPanel from "./timer-panel"
 
@@ -49,6 +55,9 @@ export default function FocusWorkspace() {
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const [timeUpNotice, setTimeUpNotice] = useState(false)
   const [dockVisible, setDockVisible] = useState(false)
+  const [floatingOpen, setFloatingOpen] = useState(false)
+  const [floatingSupported, setFloatingSupported] = useState(false)
+  const [floatingStatus, setFloatingStatus] = useState<string | null>(null)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const titleBeforeTimerRef = useRef<string | null>(null)
   const timeUpTimeoutRef = useRef<number | null>(null)
@@ -71,6 +80,7 @@ export default function FocusWorkspace() {
     )
     setTimeUpNotice(true)
     if (soundEnabled) playTimerComplete()
+    notifySessionEnded(current.phase)
     if (timeUpTimeoutRef.current !== null) {
       window.clearTimeout(timeUpTimeoutRef.current)
     }
@@ -92,6 +102,10 @@ export default function FocusWorkspace() {
   useEffect(() => {
     timerRef.current = timer
   }, [timer])
+
+  useEffect(() => {
+    setFloatingSupported(isFloatingTimerSupported())
+  }, [])
 
   useEffect(() => {
     if (timer.status !== "running") return
@@ -166,6 +180,10 @@ export default function FocusWorkspace() {
   useEffect(() => {
     if (timer.checkInPending) setFocusMode(false)
   }, [timer.checkInPending])
+
+  useEffect(() => {
+    if (breakLocked) setFloatingOpen(false)
+  }, [breakLocked])
 
   useEffect(() => {
     function reconcile() {
@@ -257,6 +275,7 @@ export default function FocusWorkspace() {
 
   const handleCheckIn = useCallback(
     (choice: FocusCheckInChoice) => {
+      if (!timerRef.current.checkInPending) return
       if (choice === "break") {
         requestBreakFullscreen()
       }
@@ -268,11 +287,30 @@ export default function FocusWorkspace() {
         })
       }
       setTimer((current) =>
-        resolveFocusCheckIn(current, choice, preferences, Date.now()),
+        current.checkInPending
+          ? resolveFocusCheckIn(current, choice, preferences, Date.now())
+          : current,
       )
     },
     [activeTask, preferences, requestBreakFullscreen],
   )
+
+  const toggleFloating = useCallback(() => {
+    if (!floatingSupported) return
+    setFloatingStatus(null)
+    if (floatingOpen) {
+      setFloatingOpen(false)
+      return
+    }
+    void requestNotificationPermission().then((permission) => {
+      if (permission === "denied") {
+        setFloatingStatus(
+          "Notifications are blocked in this browser. The timer still updates here.",
+        )
+      }
+    })
+    setFloatingOpen(true)
+  }, [floatingOpen, floatingSupported])
 
   const startPause = useCallback(() => {
     if (
@@ -327,6 +365,10 @@ export default function FocusWorkspace() {
                   setTimer((current) => nextPhase(current, preferences))
                 }
                 onFocusMode={() => setFocusMode(true)}
+                onToggleFloating={toggleFloating}
+                floatingOpen={floatingOpen}
+                floatingSupported={floatingSupported}
+                floatingStatus={floatingStatus}
                 cycleLength={preferences.sessionsBeforeLongBreak}
               />
               <TaskPanel
@@ -351,6 +393,18 @@ export default function FocusWorkspace() {
         tasks={tasks}
         dispatch={dispatch}
       />
+      <FloatingTimer
+        timer={timer}
+        activeTask={activeTask}
+        durationSeconds={durationFor(timer.phase, preferences)}
+        open={floatingOpen}
+        onOpenChange={setFloatingOpen}
+        onStatus={setFloatingStatus}
+        onStartPause={startPause}
+        onReset={reset}
+        onCheckIn={handleCheckIn}
+        onTick={reconcileCurrentTimer}
+      />
       <AnimatePresence initial={false}>
         {(focusMode || breakLocked) && !timer.checkInPending ? (
           <FocusOverlay
@@ -360,6 +414,9 @@ export default function FocusWorkspace() {
             durationSeconds={durationFor(timer.phase, preferences)}
             onStartPause={startPause}
             onClose={() => setFocusMode(false)}
+            onToggleFloating={toggleFloating}
+            floatingOpen={floatingOpen}
+            floatingSupported={floatingSupported}
             locked={breakLocked}
             fullscreenError={fullscreenError}
           />

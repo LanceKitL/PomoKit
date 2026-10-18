@@ -45,6 +45,9 @@ function renderOverlay({
       durationSeconds={DURATION}
       onStartPause={onStartPause}
       onClose={onClose}
+      onToggleFloating={vi.fn()}
+      floatingOpen={false}
+      floatingSupported
       locked={locked}
       fullscreenError={null}
     />,

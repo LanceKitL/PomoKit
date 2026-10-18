@@ -541,6 +541,10 @@ select:focus-visible,
   width: min(92vw, 46rem, calc((100svh - 15rem) * 1.78));
 }
 
+.focus-dial--compact {
+  width: min(100%, 17rem);
+}
+
 .focus-dial__svg {
   display: block;
   width: 100%;

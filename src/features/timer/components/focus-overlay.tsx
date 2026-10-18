@@ -1,6 +1,6 @@
 "use client"
 
-import { Minimize2, Pause, Play } from "lucide-react"
+import { Minimize2, Pause, PictureInPicture2, Play } from "lucide-react"
 import { motion } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button"
@@ -11,6 +11,7 @@ import {
   createBreakGifPositions,
   type BreakGifPosition,
 } from "./break-gif-layout"
+import IconTooltipButton from "./icon-tooltip-button"
 import TimerDigitTransition from "./timer-digit-transition"
 import { phaseLabel } from "./timer-panel"
 
@@ -20,6 +21,9 @@ export default function FocusOverlay({
   durationSeconds,
   onStartPause,
   onClose,
+  onToggleFloating,
+  floatingOpen,
+  floatingSupported,
   locked,
   fullscreenError,
 }: {
@@ -28,6 +32,9 @@ export default function FocusOverlay({
   durationSeconds: number
   onStartPause: () => void
   onClose: () => void
+  onToggleFloating: () => void
+  floatingOpen: boolean
+  floatingSupported: boolean
   locked: boolean
   fullscreenError: string | null
 }) {
@@ -206,16 +213,31 @@ export default function FocusOverlay({
         </div>
       ) : null}
       {!locked && (
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onClose}
-          aria-label="Leave focus mode"
-          title="Leave focus mode (Esc)"
-          className="absolute end-4 top-4 z-20 text-muted sm:end-7 sm:top-7"
-        >
-          <Minimize2 aria-hidden="true" size={21} />
-        </Button>
+        <div className="absolute end-4 top-4 z-20 flex items-center gap-1.5 sm:end-7 sm:top-7">
+          <IconTooltipButton
+            label={
+              floatingOpen ? "Hide floating timer" : "Show floating timer"
+            }
+            variant="ghost"
+            onClick={onToggleFloating}
+            pressed={floatingOpen}
+            disabled={!floatingSupported}
+            align="end"
+            className="text-muted"
+          >
+            <PictureInPicture2 aria-hidden="true" size={20} />
+          </IconTooltipButton>
+          <IconTooltipButton
+            label="Leave focus mode"
+            tooltip="Leave focus mode (Esc)"
+            variant="ghost"
+            onClick={onClose}
+            align="end"
+            className="text-muted"
+          >
+            <Minimize2 aria-hidden="true" size={21} />
+          </IconTooltipButton>
+        </div>
       )}
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center text-center">
         {activeTask && (

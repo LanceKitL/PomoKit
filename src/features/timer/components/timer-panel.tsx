@@ -3,6 +3,7 @@
 import {
   Expand,
   Pause,
+  PictureInPicture2,
   Play,
   RotateCcw,
   SkipForward,
@@ -13,6 +14,7 @@ import Card from "@/components/ui/card"
 import { cn } from "@/lib/cn"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TimerPhase, TimerState } from "../timer.model"
+import IconTooltipButton from "./icon-tooltip-button"
 import TimerDigitTransition from "./timer-digit-transition"
 
 export default function TimerPanel({
@@ -22,6 +24,10 @@ export default function TimerPanel({
   onReset,
   onSkip,
   onFocusMode,
+  onToggleFloating,
+  floatingOpen,
+  floatingSupported,
+  floatingStatus,
   cycleLength,
 }: {
   timer: TimerState
@@ -30,6 +36,10 @@ export default function TimerPanel({
   onReset: () => void
   onSkip: () => void
   onFocusMode: () => void
+  onToggleFloating: () => void
+  floatingOpen: boolean
+  floatingSupported: boolean
+  floatingStatus: string | null
   cycleLength: number
 }) {
   const minutes = Math.floor(timer.remainingSeconds / 60)
@@ -92,31 +102,45 @@ export default function TimerPanel({
               </>
             )}
           </Button>
-          <Button
-            size="icon"
+          <IconTooltipButton
+            label="Reset timer"
             variant="secondary"
             onClick={onReset}
-            aria-label="Reset timer"
           >
             <RotateCcw aria-hidden="true" size={19} />
-          </Button>
-          <Button
-            size="icon"
+          </IconTooltipButton>
+          <IconTooltipButton
+            label="Skip phase"
             variant="secondary"
             onClick={onSkip}
-            aria-label="Skip phase"
           >
             <SkipForward aria-hidden="true" size={19} />
-          </Button>
-          <Button
-            size="icon"
+          </IconTooltipButton>
+          <IconTooltipButton
+            label="Enter focus mode"
             variant="ghost"
             onClick={onFocusMode}
-            aria-label="Enter focus mode"
           >
             <Expand aria-hidden="true" size={19} />
-          </Button>
+          </IconTooltipButton>
+          <IconTooltipButton
+            label={
+              floatingOpen ? "Hide floating timer" : "Show floating timer"
+            }
+            variant="secondary"
+            onClick={onToggleFloating}
+            pressed={floatingOpen}
+            disabled={!floatingSupported}
+          >
+            <PictureInPicture2 aria-hidden="true" size={19} />
+          </IconTooltipButton>
         </div>
+
+        {floatingStatus ? (
+          <p role="status" className="mt-3 text-sm text-muted">
+            {floatingStatus}
+          </p>
+        ) : null}
 
         <div
           className="mt-9 flex justify-center gap-2"
