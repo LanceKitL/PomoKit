@@ -4,6 +4,7 @@ import { Minimize2, Pause, Play } from "lucide-react"
 import { motion } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import Button from "@/components/ui/button"
+import { cn } from "@/lib/cn"
 import type { Task } from "@/features/tasks/tasks.model"
 import type { TimerState } from "../timer.model"
 import {
@@ -16,6 +17,7 @@ import { phaseLabel } from "./timer-panel"
 export default function FocusOverlay({
   timer,
   activeTask,
+  durationSeconds,
   onStartPause,
   onClose,
   locked,
@@ -23,22 +25,30 @@ export default function FocusOverlay({
 }: {
   timer: TimerState
   activeTask: Task | null
+  durationSeconds: number
   onStartPause: () => void
   onClose: () => void
   locked: boolean
   fullscreenError: string | null
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
-  const [breakGifs, setBreakGifs] = useState<
-    { src: string; aspectRatio: number }[]
-  >([])
+  const [breakGifs, setBreakGifs] = useState<{
+    src: string
+    aspectRatio: number
+  }[]>([])
   const [breakGifError, setBreakGifError] = useState<string | null>(null)
-  const [breakGifPositions, setBreakGifPositions] = useState<
-    BreakGifPosition[]
-  >([])
+  const [breakGifPositions, setBreakGifPositions] =
+    useState<BreakGifPosition[]>([])
   const display = `${String(Math.floor(timer.remainingSeconds / 60)).padStart(2, "0")}:${String(
     timer.remainingSeconds % 60,
   ).padStart(2, "0")}`
+  const totalSeconds = Math.max(1, durationSeconds)
+  const ratio = Math.min(1, Math.max(0, timer.remainingSeconds / totalSeconds))
+  const markerAngle = Math.PI * (1 - ratio)
+  const markerTransform = `translate(${(100 + 85 * Math.cos(markerAngle)).toFixed(2)},${(
+    100 -
+    85 * Math.sin(markerAngle)
+  ).toFixed(2)})`
 
   useEffect(() => {
     if (!locked) {
@@ -168,7 +178,7 @@ export default function FocusOverlay({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ type: "spring", bounce: 0, duration: 0.38 }}
-      className="fixed inset-0 z-50 grid h-screen h-[100svh] place-items-center overflow-hidden bg-canvas px-4 py-6 sm:px-8"
+      className="fixed inset-0 z-50 grid h-screen h-[100svh] place-items-center overflow-hidden bg-canvas px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8"
     >
       <div
         aria-hidden="true"
@@ -202,7 +212,7 @@ export default function FocusOverlay({
           onClick={onClose}
           aria-label="Leave focus mode"
           title="Leave focus mode (Esc)"
-          className="absolute end-4 top-4 z-10 text-muted sm:end-7 sm:top-7"
+          className="absolute end-4 top-4 z-20 text-muted sm:end-7 sm:top-7"
         >
           <Minimize2 aria-hidden="true" size={21} />
         </Button>
@@ -213,12 +223,71 @@ export default function FocusOverlay({
             {activeTask.title}
           </p>
         )}
-        <p
-          className="timer-digits whitespace-nowrap text-[clamp(4rem,min(27vw,34vh),24rem)] leading-[0.88] font-extrabold tracking-[-0.06em] text-ink"
-          aria-label={`${phaseLabel[timer.phase]}: ${display}`}
+        <div
+          role="progressbar"
+          aria-label={phaseLabel[timer.phase]}
+          aria-valuemin={0}
+          aria-valuemax={totalSeconds}
+          aria-valuenow={timer.remainingSeconds}
+          aria-valuetext={`${display} remaining`}
+          className="focus-dial"
         >
-          <TimerDigitTransition display={display} />
-        </p>
+          <svg
+            className="focus-dial__svg"
+            viewBox="0 0 200 112"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              d="M15 100A85 85 0 0 1 185 100"
+              className="stroke-line"
+              fill="none"
+              strokeWidth={14}
+              strokeLinecap="round"
+            />
+            <path
+              d="M15 100A85 85 0 0 1 185 100"
+              className="stroke-primary"
+              pathLength={1}
+              fill="none"
+              strokeWidth={14}
+              strokeLinecap="round"
+              strokeDasharray={`${ratio} 1`}
+            />
+            <g transform={markerTransform}>
+              <ellipse cx="0" cy="3" rx="11" ry="10" fill="rgba(0,0,0,.2)" />
+              <circle r="11" fill="#E63946" />
+              <circle cx="-2.5" cy="-2.5" r="8" fill="#EE4B58" />
+              <ellipse
+                cx="-4"
+                cy="-4"
+                rx="3"
+                ry="1.5"
+                fill="#FFB3B3"
+                transform="rotate(-35 -4 -4)"
+              />
+              <path
+                d="M0-10C2-7 7-8 9-5C6-6 3-6 0-8C-3-6-6-6-9-5C-7-8-2-7 0-10Z"
+                fill="#40916C"
+              />
+              <path
+                d="M0-11C1-14 4-15 6-13C4-12 2-11 0-10C-2-11-4-12-6-13C-4-15-1-14 0-11Z"
+                fill="#2D6A4F"
+              />
+            </g>
+          </svg>
+          <div className="focus-dial__face">
+            <p
+              className={cn(
+                "focus-dial__time timer-digits text-ink",
+                timer.status === "running" && "is-running",
+              )}
+              aria-label={`${phaseLabel[timer.phase]}: ${display}`}
+            >
+              <TimerDigitTransition display={display} />
+            </p>
+          </div>
+        </div>
         {locked ? (
           <div className="mt-8 space-y-2">
             <p className="text-sm font-bold text-primary-strong sm:text-base">
@@ -229,33 +298,40 @@ export default function FocusOverlay({
               Browser and system shortcuts may still work.
             </p>
             {fullscreenError ? (
-              <p role="status" aria-live="polite" className="text-sm text-muted">
+              <p
+                role="status"
+                aria-live="polite"
+                className="text-sm text-muted"
+              >
                 {fullscreenError}
               </p>
             ) : null}
             {breakGifError ? (
-              <p role="status" aria-live="polite" className="text-sm text-muted">
+              <p
+                role="status"
+                aria-live="polite"
+                className="text-sm text-muted"
+              >
                 {breakGifError}
               </p>
             ) : null}
           </div>
         ) : (
-          <>
-            <div className="mt-9 flex justify-center">
-              <Button size="lg" onClick={onStartPause} className="min-w-40">
-                {timer.status === "running" ? (
-                  <>
-                    <Pause aria-hidden="true" size={20} /> Pause
-                  </>
-                ) : (
-                  <>
-                    <Play aria-hidden="true" size={20} />
-                    {timer.status === "paused" ? "Resume" : "Start session"}
-                  </>
-                )}
-              </Button>
-            </div>
-          </>
+          <div className="mt-9 flex justify-center">
+            <Button size="lg" onClick={onStartPause} className="min-w-40">
+              {timer.status === "running" ? (
+                <>
+                  <Pause aria-hidden="true" size={20} fill="currentColor" />{" "}
+                  Pause
+                </>
+              ) : (
+                <>
+                  <Play aria-hidden="true" size={20} fill="currentColor" />
+                  {timer.status === "paused" ? "Resume" : "Start session"}
+                </>
+              )}
+            </Button>
+          </div>
         )}
       </div>
     </motion.div>

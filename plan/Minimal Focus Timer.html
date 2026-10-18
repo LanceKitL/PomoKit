@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minimal Focus Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#E6EFF2;--ink:#17242B;--track:#D5E1E6;--accent:#A489C6;--accent-h:#9374B9;--panel:rgba(255,255,255,.45);--card:#fff;--muted:#5b6b73;--line:#cbd7dc;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:20px 24px;user-select:none;overflow:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.top{width:100%;display:flex;justify-content:space-between}
+.icon{padding:10px;border-radius:999px;color:var(--muted);display:inline-flex}
+.icon:hover{background:rgba(128,128,128,.15);color:var(--ink)}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%}
+.dial{container-type:inline-size;position:relative;width:min(92vw,760px);aspect-ratio:200/112}
+.dial svg{width:100%;height:100%;overflow:visible;display:block}
+.face{position:absolute;left:0;right:0;bottom:7cqw;text-align:center}
+#time{font-family:'Outfit',sans-serif;font-weight:800;font-size:21cqw;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+#time.run{animation:p 3s ease-in-out infinite}
+@keyframes p{50%{opacity:.85}}
+#start{margin-top:28px;background:var(--accent);color:#17242B;font-weight:600;padding:12px 26px;border-radius:14px;display:flex;align-items:center;gap:10px;transition:.2s}
+#start:hover{background:var(--accent-h);transform:translateY(-1px)}
+#start svg{width:13px;height:13px;fill:currentColor;stroke:none}
+footer{padding-bottom:8px}
+.modes{background:var(--panel);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:999px;padding:8px 18px;display:flex;gap:18px;align-items:center;font-size:13px;font-weight:600;flex-wrap:wrap;justify-content:center}
+.mode{color:var(--muted);padding:2px 0 3px;border-bottom:2px solid transparent}
+.mode:hover{color:var(--ink)}
+.mode.on{color:var(--ink);border-color:var(--ink);font-weight:700}
+.modes .sep{border-left:1px solid var(--line);padding-left:14px;display:flex}
+#modal{position:fixed;inset:0;background:rgba(10,20,25,.5);display:none;align-items:center;justify-content:center;z-index:9}
+#modal.show{display:flex}
+.card{background:var(--card);border-radius:20px;padding:26px;width:min(92vw,400px);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.card h3{margin:0 0 18px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+.card label{display:block;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.card input{width:100%;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:600}
+.card input:focus{outline:2px solid var(--accent)}
+#save{width:100%;margin-top:22px;background:var(--accent);color:#17242B;font-weight:700;padding:12px;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <button class="icon" id="settingsBtn" title="Settings"><svg class="i" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+    <button class="icon" id="soundBtn" title="Mute / unmute"><svg class="i" id="soundIcon" viewBox="0 0 24 24"></svg></button>
+  </div>
+  <button class="icon" id="fsBtn" title="Fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg></button>
+</div>
+
+<main>
+  <div class="dial">
+    <svg viewBox="0 0 200 112">
+      <path d="M15 100A85 85 0 0 1 185 100" fill="none" stroke="var(--track)" stroke-width="14" stroke-linecap="round"/>
+      <path id="arc" d="M15 100A85 85 0 0 1 185 100" pathLength="1" fill="none" stroke="var(--accent)" stroke-width="14" stroke-linecap="round" stroke-dasharray="1" stroke-dashoffset="0"/>
+      <g id="tomato">
+        <ellipse cx="0" cy="3" rx="11" ry="10" fill="rgba(0,0,0,.2)"/>
+        <circle r="11" fill="#E63946"/>
+        <circle cx="-2.5" cy="-2.5" r="8" fill="#EE4B58"/>
+        <ellipse cx="-4" cy="-4" rx="3" ry="1.5" fill="#FFB3B3" transform="rotate(-35 -4 -4)"/>
+        <path d="M0-10C2-7 7-8 9-5C6-6 3-6 0-8C-3-6-6-6-9-5C-7-8-2-7 0-10Z" fill="#40916C"/>
+        <path d="M0-11C1-14 4-15 6-13C4-12 2-11 0-10C-2-11-4-12-6-13C-4-15-1-14 0-11Z" fill="#2D6A4F"/>
+      </g>
+    </svg>
+    <div class="face"><div id="time">25:00</div></div>
+  </div>
+  <button id="start"><svg id="startIcon" viewBox="0 0 24 24"></svg><span id="startText">Start session</span></button>
+</main>
+
+<footer>
+  <div class="modes">
+    <button class="mode on" data-k="pomodoro">Pomodoro (<span>25</span>m)</button>
+    <button class="mode" data-k="short">Short Break (<span>5</span>m)</button>
+    <button class="mode" data-k="long">Long Break (<span>15</span>m)</button>
+    <button class="icon sep" id="resetBtn" title="Reset"><svg class="i" viewBox="0 0 24 24" style="width:16px;height:16px"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>
+  </div>
+</footer>
+
+<div id="modal">
+  <div class="card">
+    <h3>Timer Settings <button class="icon" id="closeBtn" style="padding:4px"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></h3>
+    <label>Focus (minutes)</label><input type="number" id="inP" value="25" min="1" max="180">
+    <label>Short break (minutes)</label><input type="number" id="inS" value="5" min="1" max="60">
+    <label>Long break (minutes)</label><input type="number" id="inL" value="15" min="1" max="120">
+    <button id="save">Save &amp; Apply</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const PLAY='<path d="M6 4l14 8-14 8z"/>',PAUSE='<path d="M6 4h4v16H6zM14 4h4v16h-4z"/>';
+const VOL='<path d="M4 9v6h4l5 4V5L8 9zM16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>',MUTE='<path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/>';
+const dur={pomodoro:25,short:5,long:15};
+let mode='pomodoro',total=dur[mode]*60,remain=total,endAt=0,tick=null,running=false,sound=true,ctx=null;
+const R=85,CX=100,CY=100,tomato=$('tomato'),arc=$('arc');
+
+function draw(){
+  const s=Math.max(0,Math.ceil(remain));
+  const t=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  $('time').textContent=t; document.title=t+' - Minimal Focus Timer';
+  const ratio=Math.max(0,Math.min(1,remain/total));
+  arc.setAttribute('stroke-dasharray',ratio+' 1');
+  arc.style.display=ratio<=0?'none':'';
+  // tomato rides the leading end of the arc: left (ratio 1) -> right (ratio 0)
+  const a=Math.PI*(1-ratio);
+  tomato.setAttribute('transform',`translate(${CX+R*Math.cos(a)},${CY-R*Math.sin(a)})`);
+}
+function setBtn(){ $('startIcon').innerHTML=running?PAUSE:PLAY; $('startText').textContent=running?'Pause session':'Start session'; $('time').classList.toggle('run',running); }
+function chime(){
+  if(!sound)return;
+  try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();
+    const o=ctx.createOscillator(),g=ctx.createGain(),n=ctx.currentTime;
+    o.type='sine';o.frequency.setValueAtTime(523.25,n);o.frequency.exponentialRampToValueAtTime(659.25,n+.3);
+    g.gain.setValueAtTime(.3,n);g.gain.exponentialRampToValueAtTime(.001,n+1.2);
+    o.connect(g);g.connect(ctx.destination);o.start();o.stop(n+1.2);}catch(e){}
+}
+function start(){
+  if(running)return;
+  try{ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume();}catch(e){}
+  running=true; endAt=performance.now()+remain*1000; setBtn();
+  tick=setInterval(()=>{
+    remain=(endAt-performance.now())/1000;
+    if(remain<=0){remain=0;draw();pause();chime();$('startText').textContent='Completed!';setTimeout(()=>{if(!running)reset();},3000);}
+    else draw();
+  },100);
+}
+function pause(){running=false;clearInterval(tick);setBtn();}
+function reset(){pause();total=dur[mode]*60;remain=total;draw();}
+function toggle(){running?pause():start();}
+
+$('start').onclick=toggle; $('resetBtn').onclick=reset;
+document.querySelectorAll('.mode').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.mode').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); mode=b.dataset.k; reset();
+});
+$('fsBtn').onclick=()=>{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});};
+function snd(){$('soundIcon').innerHTML=sound?VOL:MUTE;}
+$('soundBtn').onclick=()=>{sound=!sound;snd();};
+const modal=$('modal');
+$('settingsBtn').onclick=()=>{$('inP').value=dur.pomodoro;$('inS').value=dur.short;$('inL').value=dur.long;modal.classList.add('show');};
+const close=()=>modal.classList.remove('show');
+$('closeBtn').onclick=close; modal.onclick=e=>{if(e.target===modal)close();};
+$('save').onclick=()=>{
+  dur.pomodoro=parseInt($('inP').value)||25; dur.short=parseInt($('inS').value)||5; dur.long=parseInt($('inL').value)||15;
+  document.querySelectorAll('.mode').forEach(b=>b.querySelector('span').textContent=dur[b.dataset.k]);
+  reset(); close();
+};
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'&&e.target===document.body){e.preventDefault();toggle();}
+  if(e.key==='Escape')close();
+});
+snd(); setBtn(); draw();
+</script>
+</body>
+</html>

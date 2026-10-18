@@ -74,13 +74,10 @@ export default function FocusWorkspace() {
     if (timeUpTimeoutRef.current !== null) {
       window.clearTimeout(timeUpTimeoutRef.current)
     }
-    timeUpTimeoutRef.current = window.setTimeout(
-      () => {
-        timeUpTimeoutRef.current = null
-        setTimeUpNotice(false)
-      },
-      6000,
-    )
+    timeUpTimeoutRef.current = window.setTimeout(() => {
+      timeUpTimeoutRef.current = null
+      setTimeUpNotice(false)
+    }, 6000)
   }, [preferences, soundEnabled])
 
   useEffect(() => {
@@ -191,10 +188,7 @@ export default function FocusWorkspace() {
 
   useEffect(() => {
     if (!breakLocked) {
-      if (
-        breakFullscreenRequestedRef.current &&
-        document.fullscreenElement
-      ) {
+      if (breakFullscreenRequestedRef.current && document.fullscreenElement) {
         void document.exitFullscreen().catch(() => {
           setAnnouncement(
             "The protected break ended, but fullscreen could not be closed. Press Escape to leave fullscreen.",
@@ -363,6 +357,7 @@ export default function FocusWorkspace() {
             key="focus-overlay"
             timer={timer}
             activeTask={activeTask}
+            durationSeconds={durationFor(timer.phase, preferences)}
             onStartPause={startPause}
             onClose={() => setFocusMode(false)}
             locked={breakLocked}
@@ -371,10 +366,7 @@ export default function FocusWorkspace() {
         ) : null}
       </AnimatePresence>
       {timer.checkInPending ? (
-        <SessionCheckIn
-          activeTask={activeTask}
-          onChoose={handleCheckIn}
-        />
+        <SessionCheckIn activeTask={activeTask} onChoose={handleCheckIn} />
       ) : null}
     </>
   )
